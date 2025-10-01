@@ -1,14 +1,23 @@
 name: Complete Pipeline
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ develop, main ]
-  pull_request:
+    branches:
+      - develop
+      - main
 
 jobs:
   backend:
-    uses: ./.github/workflows/backend-pipeline.yml
+    uses: ./.github/workflows/backend-pipeline.yaml   # ✅ will work now
 
   frontend:
     needs: backend
     uses: ./.github/workflows/frontend-pipeline.yml
+
+  notify:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Notification
+        run: echo "✅ Complete CI/CD pipeline finished successfully!"
