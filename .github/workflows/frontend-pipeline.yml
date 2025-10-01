@@ -1,0 +1,57 @@
+name: Frontend Pipeline
+
+on:
+  push:
+    branches: [ develop, main ]
+  pull_request:
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --prefix frontend
+      - run: npm run lint --prefix frontend
+      - run: npm test --prefix frontend
+
+  build-and-push:
+    needs: lint-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+      - run: |
+          IMAGE_TAG=staging-${{ github.sha }}
+          if [[ $GITHUB_REF == "refs/heads/main" ]]; then
+            IMAGE_TAG=prod-${{ github.sha }}
+          fi
+          docker build -t ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/frontend:$IMAGE_TAG ./frontend
+          docker push ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/frontend:$IMAGE_TAG
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ github.ref == 'refs/heads/develop' && secrets.STAGING_RESOURCE_GROUP || secrets.PRODUCTION_RESOURCE_GROUP }}
+          cluster-name: ${{ github.ref == 'refs/heads/develop' && secrets.STAGING_AKS_CLUSTER || secrets.PRODUCTION_AKS_CLUSTER }}
+      - run: |
+          if [[ $GITHUB_REF == "refs/heads/develop" ]]; then
+            kubectl apply -f k8s/staging/
+          else
+            kubectl apply -f k8s/production/
+          fi
