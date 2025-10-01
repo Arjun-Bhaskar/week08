@@ -43,11 +43,15 @@ jobs:
           source backend/product_service/venv/bin/activate
           pip install -r backend/product_service/requirements.txt
 
-      # Run tests
-      - name: Run tests
+      # Run tests for order_service
+      - name: Test order_service
         run: |
           source backend/order_service/venv/bin/activate
           pytest backend/order_service/tests
+
+      # Run tests for product_service
+      - name: Test product_service
+        run: |
           source backend/product_service/venv/bin/activate
           pytest backend/product_service/tests
 
