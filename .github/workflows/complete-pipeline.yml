@@ -9,7 +9,7 @@ on:
 
 jobs:
   backend:
-    uses: ./.github/workflows/backend-pipeline.yaml   # ✅ will work now
+    uses: ./.github/workflows/backend-pipeline.yaml
 
   frontend:
     needs: backend

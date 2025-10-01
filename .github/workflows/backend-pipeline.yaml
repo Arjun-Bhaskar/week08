@@ -1,7 +1,7 @@
 name: Backend Pipeline
 
 on:
-  workflow_call:   # ✅ allows complete-pipeline.yml to call it
+  workflow_call:   # allows complete-pipeline.yml to call it
   push:
     branches:
       - develop
@@ -29,16 +29,18 @@ jobs:
           --health-retries=5
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          python-version: '3.10'
+          node-version: '18'
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          cd backend
+          npm install
       - name: Run Tests
-        run: pytest
+        run: |
+          cd backend
+          npm test
 
   build:
     runs-on: ubuntu-latest
@@ -59,11 +61,10 @@ jobs:
             echo "IMAGE_TAG=prod" >> $GITHUB_ENV
           else
             echo "IMAGE_TAG=staging" >> $GITHUB_ENV
-          fi
 
       - name: Build and Push Docker Image
         run: |
-          docker build -t ${{ secrets.AZURE_CONTAINER_REGISTRY }}/backend:${IMAGE_TAG} .
+          docker build -t ${{ secrets.AZURE_CONTAINER_REGISTRY }}/backend:${IMAGE_TAG} ./backend
           docker push ${{ secrets.AZURE_CONTAINER_REGISTRY }}/backend:${IMAGE_TAG}
 
   deploy-staging:
