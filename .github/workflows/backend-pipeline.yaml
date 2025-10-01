@@ -23,11 +23,33 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      # Set up Python
+      - uses: actions/setup-python@v4
         with:
-          node-version: 20
-      - run: npm install --prefix backend
-      - run: npm test --prefix backend
+          python-version: '3.11'
+
+      # Install backend dependencies for order_service
+      - name: Install order_service dependencies
+        run: |
+          python -m venv backend/order_service/venv
+          source backend/order_service/venv/bin/activate
+          pip install -r backend/order_service/requirements.txt
+
+      # Install backend dependencies for product_service
+      - name: Install product_service dependencies
+        run: |
+          python -m venv backend/product_service/venv
+          source backend/product_service/venv/bin/activate
+          pip install -r backend/product_service/requirements.txt
+
+      # Run tests
+      - name: Run tests
+        run: |
+          source backend/order_service/venv/bin/activate
+          pytest backend/order_service/tests
+          source backend/product_service/venv/bin/activate
+          pytest backend/product_service/tests
 
   build-and-push:
     needs: test
